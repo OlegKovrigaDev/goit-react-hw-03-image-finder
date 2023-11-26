@@ -1,23 +1,11 @@
 import React, { Component } from 'react';
-import axios from 'axios';
 import styles from './App.module.css';
-
 import Searchbar from './SearchBar/SearchBar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
 
-const BASE_URL = 'https://pixabay.com/api/';
-const API_KEY = '39913816-3a64d839dc0a58f3e1831719d';
-
-const instance = axios.create({
-  baseURL: BASE_URL,
-  params: {
-    key: API_KEY,
-    image_type: 'photo',
-    orientation: 'horizontal',
-  },
-});
+import { fetchGalleryItems } from '../services/api';
 
 export class App extends Component {
   state = {
@@ -36,66 +24,65 @@ export class App extends Component {
       this.setState(
         { galleryPage: 1, galleryItems: [], isButtonShow: false },
         () => {
-          this.fetchGalleryItems(searchQuery, 1);
+          fetchGalleryItems(
+            searchQuery,
+            1,
+            this.handleFetchSuccess,
+            this.handleFetchError
+          );
         }
       );
     } else if (prevState.galleryPage !== galleryPage) {
-      this.fetchGalleryItems(searchQuery, galleryPage);
+      fetchGalleryItems(
+        searchQuery,
+        galleryPage,
+        this.handleFetchSuccess,
+        this.handleFetchError
+      );
     }
   }
 
-  fetchGalleryItems = async (nextQuery, nextPage) => {
-    this.setState({ loading: true, error: false });
+  handleFetchSuccess = data => {
+    const hits = data.totalHits;
 
-    try {
-      const response = await instance.get('', {
-        params: {
-          q: nextQuery,
-          page: nextPage,
-          per_page: 12,
-        },
-      });
+    if (!hits) {
+      this.setState({ loading: false, error: true });
+      return;
+    }
 
-      const data = response.data;
-      const hits = data.totalHits;
+    const newData = data.hits.map(
+      ({ id, tags, webformatURL, largeImageURL }) => ({
+        id,
+        tags,
+        webformatURL,
+        largeImageURL,
+      })
+    );
 
-      if (!hits) {
-        this.setState({ loading: false, error: true });
-        return;
-      }
+    const currentData = [...this.state.galleryItems, ...newData];
 
-      const newData = data.hits.map(
-        ({ id, tags, webformatURL, largeImageURL }) => ({
-          id,
-          tags,
-          webformatURL,
-          largeImageURL,
-        })
-      );
+    this.setState(prevState => ({
+      galleryItems: [...prevState.galleryItems, ...newData],
+    }));
 
-      const currentData = [...this.state.galleryItems, ...newData];
-
-      this.setState(prevState => ({
-        galleryItems: [...prevState.galleryItems, ...newData],
-      }));
-
-      if (currentData.length >= hits) {
-        this.setState({
-          loading: false,
-          isButtonShow: false,
-          error: false,
-        });
-        return;
-      }
-
+    if (currentData.length >= hits) {
       this.setState({
         loading: false,
-        isButtonShow: true,
+        isButtonShow: false,
         error: false,
       });
-    } catch (error) {
-      this.setState({ loading: false, error: true });
+      return;
     }
+
+    this.setState({
+      loading: false,
+      isButtonShow: true,
+      error: false,
+    });
+  };
+
+  handleFetchError = () => {
+    this.setState({ loading: false, error: true });
   };
 
   handleFormSubmit = searchQuery => {
@@ -114,7 +101,7 @@ export class App extends Component {
     return (
       <div className={styles.App}>
         <Searchbar onSubmit={this.handleFormSubmit} />
-        {error && <h2>Please, enter search word!</h2>}
+        {error && <h2>Please, enter a search word!</h2>}
         {!error && <ImageGallery galleryItems={galleryItems} />}
         {loading && <Loader />}
         {isButtonShow && <Button onClick={this.onLoadMore} />}
