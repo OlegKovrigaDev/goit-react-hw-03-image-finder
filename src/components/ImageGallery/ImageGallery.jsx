@@ -4,7 +4,6 @@ import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
 import PropTypes from 'prop-types';
 
 export default function ImageGallery({ galleryItems }) {
-  console.log(galleryItems);
   return (
     <ul className={styles['image-gallery']}>
       {galleryItems.map(galleryItem => (
