@@ -1,17 +1,19 @@
 import React from 'react';
 import styles from './ImageGallery.module.css';
-import ImageGalleryItem from 'components/ImageGalleryItem/ImageGalleryItem';
+import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
+import PropTypes from 'prop-types';
 
-export default function ImageGallery({ images, onImageClick }) {
+export default function ImageGallery({ galleryItems }) {
+  console.log(galleryItems);
   return (
     <ul className={styles['image-gallery']}>
-      {images.map(image => (
-        <ImageGalleryItem
-          key={image.id}
-          image={image}
-          onImageClick={onImageClick}
-        />
+      {galleryItems.map(galleryItem => (
+        <ImageGalleryItem key={galleryItem.id} galleryItem={galleryItem} />
       ))}
     </ul>
   );
 }
+
+ImageGallery.propTypes = {
+  galleryItems: PropTypes.array.isRequired,
+};

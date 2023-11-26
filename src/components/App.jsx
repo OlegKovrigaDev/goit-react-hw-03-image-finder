@@ -1,82 +1,107 @@
-import React, { Component } from 'react';
-import SearchBar from './SearchBar/SearchBar';
+import { Component } from 'react';
+
+import styles from './App.module.css';
+import PostsApiService from 'services/PostApiService';
+
+import Searchbar from './SearchBar/SearchBar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
-import Modal from './Modal/Modal';
-import fetchImages from '../Services/api';
-import styles from './App.module.css';
+
+const postApiService = new PostsApiService();
 
 export class App extends Component {
   state = {
-    query: '',
-    images: [],
-    page: 1,
-    showModal: false,
-    selectedImage: '',
-    hasMoreImages: true,
-    isLoading: false,
+    searchQuery: ``,
+    galleryItems: [],
+    galleryPage: 1,
+
+    loading: false,
+    isButtonShow: false,
+    error: true,
   };
 
   componentDidUpdate(_, prevState) {
-    if (prevState.query !== this.state.query) {
-      this.getImages();
+    const prevQuery = prevState.searchQuery;
+    const nextQuery = this.state.searchQuery;
+    const prevPage = prevState.galleryPage;
+    const nextPage = this.state.galleryPage;
+
+    if (prevQuery !== nextQuery) {
+      this.setState({ galleryPage: 1, galleryItems: [], isButtonShow: false });
+      if (nextPage === 1) {
+        this.fetchGalleryItems(nextQuery, nextPage);
+      }
+    } else if (prevPage !== nextPage) {
+      this.fetchGalleryItems(nextQuery, nextPage);
     }
   }
 
-  getImages = async () => {
-    const { query, page } = this.state;
-    try {
-      this.setState({ isLoading: true });
+  fetchGalleryItems = (nextQuery, nextPage) => {
+    this.setState({ loading: true, error: false });
 
-      const newImages = await fetchImages({ query, page });
+    postApiService.query = nextQuery;
+    postApiService.page = nextPage;
+
+    postApiService.fetchPost().then(data => {
+      postApiService.hits = data.totalHits;
+
+      const newData = data.hits.map(
+        ({ id, tags, webformatURL, largeImageURL }) => ({
+          id,
+          tags,
+          webformatURL,
+          largeImageURL,
+        })
+      );
+      const currentData = [...this.state.galleryItems, ...newData];
 
       this.setState(prevState => ({
-        images: [...prevState.images, ...newImages],
-        page: prevState.page + 1,
-        hasMoreImages: newImages.length > 0,
+        galleryItems: [...prevState.galleryItems, ...newData],
       }));
-    } catch (error) {
-      console.error('Error fetching images:', error);
-    } finally {
-      this.setState({ isLoading: false });
-    }
+
+      if (!data.totalHits) {
+        this.setState({ loading: false, error: true });
+      }
+
+      if (currentData.length >= data.totalHits) {
+        this.setState({
+          loading: false,
+          isButtonShow: false,
+          error: false,
+        });
+        return;
+      }
+
+      this.setState({
+        loading: false,
+        isButtonShow: true,
+        error: false,
+      });
+    });
   };
 
-  handleSearchSubmit = query => {
-    this.setState({ query, images: [], page: 1, hasMoreImages: true });
+  handleFormSubmit = searchQuery => {
+    this.setState({ searchQuery });
   };
 
-  handleLoadMore = () => {
-    if (this.state.hasMoreImages) {
-      this.getImages();
-    }
+  onLoadMore = () => {
+    this.setState(prevState => ({
+      galleryPage: prevState.galleryPage + 1,
+    }));
   };
 
-  handleImageClick = selectedImage => {
-    this.setState({ showModal: true, selectedImage });
-  };
-
-  handleCloseModal = () => {
-    this.setState({ showModal: false, selectedImage: '' });
-  };
 
   render() {
-    const { images, showModal, selectedImage, hasMoreImages, isLoading } =
-      this.state;
+    const { galleryItems, loading, isButtonShow, error } = this.state;
 
     return (
       <div className={styles.App}>
-        <SearchBar onSubmit={this.handleSearchSubmit} />
-        <ImageGallery images={images} onImageClick={this.handleImageClick} />
-        {isLoading && <Loader />}
-        <Button
-          onClick={this.handleLoadMore}
-          isVisible={hasMoreImages && images.length > 0}
-        />
-        {showModal && (
-          <Modal image={selectedImage} onClose={this.handleCloseModal} />
-        )}
+        <Searchbar onSubmit={this.handleFormSubmit} />
+        {error && <h2>Please, enter search word!</h2>}
+        {!error && <ImageGallery galleryItems={galleryItems} />}
+        {loading && <Loader />}
+        {isButtonShow && <Button onClick={this.onLoadMore} />}
       </div>
     );
   }

@@ -11,22 +11,20 @@ export default class Modal extends Component {
   }
 
   handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      this.props.onClose();
-    }
+    if (e.code === 'Escape') this.props.onCloseModal();
   };
 
-  handleClose = e => {
-    if (e.target === e.currentTarget) {
-      this.props.onClose();
+  handleClose = ({ target, currentTarget }) => {
+    if (target === currentTarget) {
+      this.props.onCloseModal();
     }
   };
   render() {
-    const { image, alt } = this.props;
+    const { modalSrc, alt } = this.props;
     return (
       <div className={styles.overlay} onClick={this.handleClose}>
         <div className={styles.modal}>
-          <img src={image} alt={alt} />
+          <img src={modalSrc} alt={alt} />
         </div>
       </div>
     );
@@ -34,7 +32,7 @@ export default class Modal extends Component {
 }
 
 Modal.proppTypes = {
-  src: PropTypes.string.isRequired,
+  modalSrc: PropTypes.string.isRequired,
   alt: PropTypes.string.isRequired,
-  onclose: PropTypes.func.isRequired,
+  onCloseModal: PropTypes.func.isRequired,
 };
