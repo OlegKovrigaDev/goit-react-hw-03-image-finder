@@ -20,19 +20,10 @@ export class App extends Component {
   componentDidUpdate(_, prevState) {
     const { searchQuery, galleryPage } = this.state;
 
-    if (prevState.searchQuery !== searchQuery) {
-      this.setState(
-        { galleryPage: 1, galleryItems: [], isButtonShow: false },
-        () => {
-          fetchGalleryItems(
-            searchQuery,
-            1,
-            this.handleFetchSuccess,
-            this.handleFetchError
-          );
-        }
-      );
-    } else if (prevState.galleryPage !== galleryPage) {
+    if (
+      prevState.searchQuery !== searchQuery ||
+      prevState.galleryPage !== galleryPage
+    ) {
       fetchGalleryItems(
         searchQuery,
         galleryPage,
@@ -86,7 +77,12 @@ export class App extends Component {
   };
 
   handleFormSubmit = searchQuery => {
-    this.setState({ searchQuery });
+    this.setState({
+      searchQuery,
+      galleryItems: [],
+      galleryPage: 1,
+      isButtonShow: false,
+    });
   };
 
   onLoadMore = () => {
